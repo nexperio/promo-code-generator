@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Codes Promo - Nexperio</title>
+    <meta name="description" content="Générateur de codes promotionnels pour e-commerce Nexperio">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: transparent;
+        }
+        
+        .embed-container {
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        .nexperio-gradient {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        }
+        
+        .compact-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .compact-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Responsive pour iframe */
+        @media (max-width: 768px) {
+            .embed-container {
+                padding: 8px;
+            }
+            .grid-responsive {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        
+        /* Optimisations pour iframe */
+        .iframe-optimized {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .compact-spacing {
+            padding: 1rem;
+        }
+        
+        .small-text {
+            font-size: 0.875rem;
+        }
+        
+        /* Header compact pour embed */
+        .embed-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 1rem;
+            margin: -16px -16px 1rem -16px;
+            border-radius: 0;
+        }
+        
+        @media (min-width: 1024px) {
+            .embed-header {
+                border-radius: 8px 8px 0 0;
+                margin: -16px -16px 1rem -16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="embed-container iframe-optimized">
+        <!-- Header compact pour embed -->
+        <div class="embed-header">
+            <div class="flex items-center justify-center">
+                <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                    <i data-lucide="gift" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Générateur de Codes Promo</h1>
+                    <p class="text-sm opacity-90">Nexperio - Clinique du Docteur Digital</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="app"></div>
+    </div>
+
+    <script>
+        // Configuration pour iframe
+        const isInIframe = window !== window.parent;
+        
+        // Optimisations pour iframe
+        if (isInIframe) {
+            // Empêcher le scroll horizontal
+            document.body.style.overflowX = 'hidden';
+            
+            // Communication avec la page parent si nécessaire
+            window.addEventListener('message', function(event) {
+                if (event.data.type === 'resize') {
+                    // Gérer le redimensionnement
+                }
+            });
+        }
+
+        // Configuration des icônes Lucide
+        lucide.createIcons();
+
+        class PromoGenerator {
+            constructor() {
+                this.generatedCode = '';
+                this.codeSettings = {
+                    prefix: 'NEXPERIO',
+                    length: 8,
+                    includeNumbers: true,
+                    includeLetters: true,
+                    excludeSimilar: true
+                };
+                this.promoDetails = {
+                    discount: 20,
+                    discountType: 'percentage',
+                    validUntil: this.getDefaultDate(),
+                    usageLimit: 100,
+                    minOrderAmount: 0,
+                    description: ''
+                };
+                this.savedCodes = JSON.parse(localStorage.getItem('nexperio_promo_codes') || '[]');
+                this.init();
+            }
+
+            getDefaultDate() {
+                const date = new Date();
+                date.setDate(date.getDate() + 30);
+                return date.toISOString().split('T')[0];
+            }
+
+            init() {
+                this.render();
+                this.generateCode();
+                this.attachEventListeners();
+                
+                // Notification de hauteur pour iframe
+                if (isInIframe) {
+                    this.notifyParentHeight();
+                }
+            }
+
+            notifyParentHeight() {
+                const height = document.body.scrollHeight;
+                window.parent.postMessage({
+                    type: 'resize',
+                    height: height
+                }, '*');
+            }
+
+            generateCode() {
+                let characters = '';
+                if (this.codeSettings.includeNumbers) characters += '0123456789';
+                if (this.codeSettings.includeLetters) characters += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                
+                if (this.codeSettings.excludeSimilar) {
+                    characters = characters.replace(/[0O1IL]/g, '');
+                }
+
+                let result = this.codeSettings.prefix;
+                for (let i = 0; i < this.codeSettings.length; i++) {
+                    result += characters.charAt(Math.floor(Math.random() * characters.length));
+                }
+                
+                this.generatedCode = result;
+                this.updateGeneratedCodeDisplay();
+            }
+
+            async copyCode() {
+                try {
+                    await navigator.clipboard.writeText(this.generatedCode);
+                    const copyBtn = document.getElementById('copy-btn');
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i data-lucide="check"></i><span>Copié!</span>';
+                    copyBtn.className = copyBtn.className.replace('bg-gray-200 text-gray-700 hover:bg-gray-300', 'bg-green-500 text-white');
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                        copyBtn.className = copyBtn.className.replace('bg-green-500 text-white', 'bg-gray-200 text-gray-700 hover:bg-gray-300');
+                        lucide.createIcons();
+                    }, 2000);
+                } catch (err) {
+                    // Fallback pour les navigateurs sans clipboard API
+                    const textArea = document.createElement('textarea');
+                    textArea.value = this.generatedCode;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    const copyBtn = document.getElementById('copy-btn');
+                    const originalText = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i data-lucide="check"></i><span>Copié!</span>';
+                    copyBtn.className = copyBtn.className.replace('bg-gray-200 text-gray-700 hover:bg-gray-300', 'bg-green-500 text-white');
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalText;
+                        copyBtn.className = copyBtn.className.replace('bg-green-500 text-white', 'bg-gray-200 text-gray-700 hover:bg-gray-300');
+                        lucide.createIcons();
+                    }, 2000);
+                }
+            }
+
+            saveCode() {
+                if (this.generatedCode) {
+                    const newCode = {
+                        code: this.generatedCode,
+                        discount: this.promoDetails.discount,
+                        discountType: this.promoDetails.discountType,
+                        validUntil: this.promoDetails.validUntil,
+                        usageLimit: this.promoDetails.usageLimit,
+                        minOrderAmount: this.promoDetails.minOrderAmount,
+                        description: this.promoDetails.description,
+                        createdAt: new Date().toLocaleDateString('fr-FR')
+                    };
+                    this.savedCodes.unshift(newCode);
+                    localStorage.setItem('nexperio_promo_codes', JSON.stringify(this.savedCodes));
+                    this.updateSavedCodesDisplay();
+                    
+                    // Notifier la hauteur après modification
+                    if (isInIframe) {
+                        setTimeout(() => this.notifyParentHeight(), 100);
+                    }
+                }
+            }
+
+            deleteSavedCode(index) {
+                this.savedCodes.splice(index, 1);
+                localStorage.setItem('nexperio_promo_codes', JSON.stringify(this.savedCodes));
+                this.updateSavedCodesDisplay();
+                
+                // Notifier la hauteur après suppression
+                if (isInIframe) {
+                    setTimeout(() => this.notifyParentHeight(), 100);
+                }
+            }
+
+            formatDiscount(discount, type) {
+                return type === 'percentage' ? `${discount}%` : `${discount}€`;
+            }
+
+            updateGeneratedCodeDisplay() {
+                const codeDisplay = document.getElementById('generated-code');
+                if (codeDisplay) {
+                    codeDisplay.textContent = this.generatedCode;
+                }
+            }
+
+            updateSavedCodesDisplay() {
+                const container = document.getElementById('saved-codes-container');
+                const count = document.getElementById('saved-codes-count');
+                
+                if (count) {
+                    count.textContent = this.savedCodes.length;
+                }
+
+                if (container) {
+                    if (this.savedCodes.length === 0) {
+                        container.innerHTML = '<p class="text-gray-500 text-center py-4 small-text">Aucun code sauvegardé</p>';
+                    } else {
+                        container.innerHTML = this.savedCodes.map((code, index) => `
+                            <div class="p-3 bg-gray-50 rounded-lg border fade-in">
+                                <div class="flex justify-between items-start mb-1">
+                                    <div class="font-mono text-sm font-bold text-blue-600">
+                                        ${code.code}
+                                    </div>
+                                    <button onclick="app.deleteSavedCode(${index})" class="text-red-500 hover:text-red-700 p-1">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-600">
+                                    <div>Remise: ${this.formatDiscount(code.discount, code.discountType)}</div>
+                                    <div>Expire: ${new Date(code.validUntil).toLocaleDateString('fr-FR')}</div>
+                                    <div>Limite: ${code.usageLimit} utilisations</div>
+                                    ${code.minOrderAmount > 0 ? `<div>Min: ${code.minOrderAmount}€</div>` : ''}
+                                    <div class="mt-1 text-gray-500">Créé: ${code.createdAt}</div>
+                                </div>
+                                ${code.description ? `<div class="text-xs text-gray-600 mt-1 italic">${code.description}</div>` : ''}
+                            </div>
+                        `).join('');
+                        lucide.createIcons();
+                    }
+                }
+            }
+
+            attachEventListeners() {
+                // Génération de nouveau code
+                document.getElementById('generate-btn').addEventListener('click', () => {
+                    this.generateCode();
+                });
+
+                // Copie du code
+                document.getElementById('copy-btn').addEventListener('click', () => {
+                    this.copyCode();
+                });
+
+                // Sauvegarde du code
+                document.getElementById('save-btn').addEventListener('click', () => {
+                    this.saveCode();
+                });
+
+                // Paramètres du code
+                document.getElementById('prefix').addEventListener('input', (e) => {
+                    this.codeSettings.prefix = e.target.value.toUpperCase();
+                    this.generateCode();
+                });
+
+                document.getElementById('length').addEventListener('input', (e) => {
+                    this.codeSettings.length = parseInt(e.target.value);
+                    this.generateCode();
+                });
+
+                document.getElementById('include-numbers').addEventListener('change', (e) => {
+                    this.codeSettings.includeNumbers = e.target.checked;
+                    this.generateCode();
+                });
+
+                document.getElementById('include-letters').addEventListener('change', (e) => {
+                    this.codeSettings.includeLetters = e.target.checked;
+                    this.generateCode();
+                });
+
+                document.getElementById('exclude-similar').addEventListener('change', (e) => {
+                    this.codeSettings.excludeSimilar = e.target.checked;
+                    this.generateCode();
+                });
+
+                // Détails de la promotion
+                ['discount', 'discount-type', 'valid-until', 'usage-limit', 'min-order', 'description'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('input', (e) => {
+                            const key = id.replace('-', '');
+                            if (key === 'discounttype') {
+                                this.promoDetails.discountType = e.target.value;
+                            } else if (key === 'validuntil') {
+                                this.promoDetails.validUntil = e.target.value;
+                            } else if (key === 'usagelimit') {
+                                this.promoDetails.usageLimit = parseInt(e.target.value);
+                            } else if (key === 'minorder') {
+                                this.promoDetails.minOrderAmount = parseInt(e.target.value) || 0;
+                            } else {
+                                this.promoDetails[key] = e.target.value;
+                            }
+                        });
+                    }
+                });
+            }
+
+            render() {
+                document.getElementById('app').innerHTML = `
+                    <div class="max-w-5xl mx-auto">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 grid-responsive">
+                            <!-- Générateur principal -->
+                            <div class="lg:col-span-2 space-y-4">
+                                <!-- Code généré -->
+                                <div class="compact-card compact-spacing border-l-4 border-blue-600">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                                            <i data-lucide="star" class="w-4 h-4 text-yellow-500 mr-2"></i>
+                                            Code Généré
+                                        </h2>
+                                        <button id="generate-btn" class="flex items-center space-x-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                            <span>Nouveau</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="bg-gray-50 p-3 rounded-lg border-2 border-dashed border-gray-300">
+                                        <div class="flex items-center justify-between">
+                                            <span id="generated-code" class="text-xl font-mono font-bold text-blue-600 tracking-wider">
+                                                NEXPERIO12345
+                                            </span>
+                                            <button id="copy-btn" class="flex items-center space-x-2 bg-gray-200 text-gray-700 hover:bg-gray-300 px-3 py-2 rounded-lg transition-colors text-sm">
+                                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                                <span>Copier</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Paramètres du code -->
+                                <div class="compact-card compact-spacing">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                        <i data-lucide="settings" class="w-4 h-4 text-gray-600 mr-2"></i>
+                                        Paramètres
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Préfixe</label>
+                                            <input id="prefix" type="text" value="NEXPERIO" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Longueur</label>
+                                            <input id="length" type="number" value="8" min="4" max="12" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                        </div>
+                                        
+                                        <div class="flex items-center space-x-4">
+                                            <label class="flex items-center">
+                                                <input id="include-numbers" type="checkbox" checked class="mr-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                                <span class="text-sm text-gray-700">Chiffres</span>
+                                            </label>
+                                            
+                                            <label class="flex items-center">
+                                                <input id="include-letters" type="checkbox" checked class="mr-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                                <span class="text-sm text-gray-700">Lettres</span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="flex items-center">
+                                                <input id="exclude-similar" type="checkbox" checked class="mr-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                                <span class="text-sm text-gray-700">Exclure 0,O,1,I,L</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Détails de la promotion -->
+                                <div class="compact-card compact-spacing">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                        <i data-lucide="percent" class="w-4 h-4 text-green-600 mr-2"></i>
+                                        Promotion
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Remise</label>
+                                            <div class="flex">
+                                                <input id="discount" type="number" value="20" min="1" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                                <select id="discount-type" class="px-3 py-2 border border-l-0 border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                                    <option value="percentage">%</option>
+                                                    <option value="fixed">€</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Valide jusqu'au</label>
+                                            <input id="valid-until" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Limite d'utilisation</label>
+                                            <input id="usage-limit" type="number" value="100" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Commande min. (€)</label>
+                                            <input id="min-order" type="number" value="0" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                        </div>
+                                        
+                                        <div class="md:col-span-2">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                            <textarea id="description" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" rows="2" placeholder="Description de la promotion..."></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3 pt-3 border-t">
+                                        <button id="save-btn" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 text-sm">
+                                            <i data-lucide="save" class="w-4 h-4"></i>
+                                            <span>Sauvegarder ce Code</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sidebar - Codes sauvegardés -->
+                            <div class="lg:col-span-1">
+                                <div class="compact-card compact-spacing sticky top-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                                        <i data-lucide="archive" class="w-4 h-4 text-blue-600 mr-2"></i>
+                                        Sauvegardés (<span id="saved-codes-count">0</span>)
+                                    </h3>
+                                    
+                                    <div id="saved-codes-container" class="space-y-2 max-h-80 overflow-y-auto">
+                                        <p class="text-gray-500 text-center py-4 small-text">Aucun code sauvegardé</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Initialiser les icônes après le rendu
+                setTimeout(() => lucide.createIcons(), 100);
+                
+                // Mettre à jour l'affichage des codes sauvegardés
+                this.updateSavedCodesDisplay();
+                
+                // Définir la date par défaut
+                document.getElementById('valid-until').value = this.promoDetails.validUntil;
+            }
+        }
+
+        // Initialiser l'application
+        const app = new PromoGenerator();
+    </script>
+</body>
+</html>
